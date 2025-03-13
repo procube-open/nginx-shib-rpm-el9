@@ -1,0 +1,113 @@
+--- nginx.spec.org	2025-03-12 09:23:40.393263119 +0000
++++ nginx.spec	2025-03-13 00:30:13.407263119 +0000
+@@ -4,6 +4,14 @@
+ %define nginx_group nginx
+ %define nginx_loggroup adm
+ 
++# versions
++%define lua_nginx_version 0.10.13
++%define ngx_devel_kit_version 0.3.3
++%define nginx_ajp_module_version 0.3.3
++%define nginx_http_shibboleth_version 2.0.2
++%define headers_more_version 0.38
++%define ngx_upstream_jdomain_version master
++
+ BuildRequires: systemd
+ Requires(post): systemd
+ Requires(preun): systemd
+@@ -39,8 +47,8 @@ BuildRequires: openssl-devel >= 1.1.1
+ %endif
+ 
+ %if 0%{?rhel} == 9
+-%define epoch 1
+-Epoch: %{epoch}
++#%define epoch 1
++#Epoch: %{epoch}
+ Requires(pre): shadow-utils
+ BuildRequires: openssl-devel
+ %define _debugsource_template %{nil}
+@@ -69,10 +77,17 @@ Requires(pre): shadow-utils
+ 
+ %define bdir %{_builddir}/%{name}-%{base_version}
+ 
+-%define WITH_CC_OPT $(echo %{optflags} $(pcre2-config --cflags)) -fPIC
+-%define WITH_LD_OPT -Wl,-z,relro -Wl,-z,now -pie
++%define WITH_CC_OPT $(echo %{optflags} $(pcre2-config --cflags)) -fPIC -Wno-cast-function-type
++%define WITH_LD_OPT -Wl,-z,relro -Wl,-z,now -pie -lpcre
+ 
+-%define BASE_CONFIGURE_ARGS $(echo "--prefix=%{_sysconfdir}/nginx --sbin-path=%{_sbindir}/nginx --modules-path=%{_libdir}/nginx/modules --conf-path=%{_sysconfdir}/nginx/nginx.conf --error-log-path=%{_localstatedir}/log/nginx/error.log --http-log-path=%{_localstatedir}/log/nginx/access.log --pid-path=%{_localstatedir}/run/nginx.pid --lock-path=%{_localstatedir}/run/nginx.lock --http-client-body-temp-path=%{_localstatedir}/cache/nginx/client_temp --http-proxy-temp-path=%{_localstatedir}/cache/nginx/proxy_temp --http-fastcgi-temp-path=%{_localstatedir}/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=%{_localstatedir}/cache/nginx/uwsgi_temp --http-scgi-temp-path=%{_localstatedir}/cache/nginx/scgi_temp --user=%{nginx_user} --group=%{nginx_group} --with-compat --with-file-aio --with-threads --with-http_addition_module --with-http_auth_request_module --with-http_dav_module --with-http_flv_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_mp4_module --with-http_random_index_module --with-http_realip_module --with-http_secure_link_module --with-http_slice_module --with-http_ssl_module --with-http_stub_status_module --with-http_sub_module --with-http_v2_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module --with-stream_ssl_preread_module")
++%define BASE_CONFIGURE_ARGS $(echo "--prefix=%{_sysconfdir}/nginx --sbin-path=%{_sbindir}/nginx --modules-path=%{_libdir}/nginx/modules --conf-path=%{_sysconfdir}/nginx/nginx.conf --error-log-path=%{_localstatedir}/log/nginx/error.log --http-log-path=%{_localstatedir}/log/nginx/access.log --pid-path=%{_localstatedir}/run/nginx.pid --lock-path=%{_localstatedir}/run/nginx.lock --http-client-body-temp-path=%{_localstatedir}/cache/nginx/client_temp --http-proxy-temp-path=%{_localstatedir}/cache/nginx/proxy_temp --http-fastcgi-temp-path=%{_localstatedir}/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=%{_localstatedir}/cache/nginx/uwsgi_temp --http-scgi-temp-path=%{_localstatedir}/cache/nginx/scgi_temp --user=%{nginx_user} --group=%{nginx_group} --with-compat --with-file-aio --with-threads --with-http_addition_module --with-http_auth_request_module --with-http_dav_module --with-http_flv_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_mp4_module --with-http_random_index_module --with-http_realip_module --with-http_secure_link_module --with-http_slice_module --with-http_ssl_module --with-http_stub_status_module --with-http_sub_module --with-http_v2_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module --with-stream_ssl_preread_module \
++--add-module=%{bdir}/ngx_devel_kit-%{ngx_devel_kit_version} \
++--add-module=%{bdir}/lua-nginx-module-%{lua_nginx_version} \
++--add-module=%{bdir}/nginx_ajp_module-%{nginx_ajp_module_version} \
++--add-module=%{bdir}/nginx-http-shibboleth-%{nginx_http_shibboleth_version} \
++--add-module=%{bdir}/headers-more-nginx-module-%{headers_more_version} \
++--add-module=%{bdir}/ngx_upstream_jdomain-%{ngx_upstream_jdomain_version} \
++")
+ 
+ Summary: High performance web server
+ Name: nginx
+@@ -92,7 +107,16 @@ Source6: nginx.suse.logrotate
+ Source7: nginx-debug.service
+ Source8: nginx.copyright
+ Source9: nginx.check-reload.sh
+-
++Source10: ngx_devel_kit-%{ngx_devel_kit_version}.tar.gz
++Source11: lua-nginx-module-%{lua_nginx_version}.tar.gz
++Source12: nginx-http-shibboleth-%{nginx_http_shibboleth_version}.tar.gz
++Source13: headers-more-nginx-module-%{headers_more_version}.tar.gz
++Source14: nginx_ajp_module-%{nginx_ajp_module_version}.tar.gz
++Source15: ngx_upstream_jdomain-%{ngx_upstream_jdomain_version}.tar.gz
++
++Patch0: core.patch
++Patch1: shibboleth.patch
++Patch2: jdomain_http.patch
+ 
+ 
+ License: 2-clause BSD-like license
+@@ -113,9 +137,22 @@ a mail proxy server.
+ %endif
+ 
+ %prep
+-%autosetup -p1
++%setup -T -c
++%{__tar} xzvf %{SOURCE0} --strip-components=1
++%setup -T -D -a 10
++%setup -T -D -a 11
++%setup -T -D -a 12
++%setup -T -D -a 13
++%setup -T -D -a 14
++%setup -T -D -a 15
++%patch0 -p1
++%patch1 -p1
++%patch2 -p1
+ 
+ %build
++export LUA_LIB=/usr/lib64
++export LUA_INC=/usr/share/lua/5.1
++export DESTDIR=%{buildroot}
+ ./configure %{BASE_CONFIGURE_ARGS} \
+     --with-cc-opt="%{WITH_CC_OPT}" \
+     --with-ld-opt="%{WITH_LD_OPT}" \
+@@ -160,6 +197,11 @@ cd $RPM_BUILD_ROOT%{_sysconfdir}/nginx &
+ %{__install} -p -D -m 0644 %{bdir}/objs/nginx.8 \
+     $RPM_BUILD_ROOT%{_mandir}/man8/nginx.8
+ 
++%{__install} -m 644 -p %{bdir}/nginx-http-shibboleth-%{nginx_http_shibboleth_version}/includes/shib_clear_headers \
++  $RPM_BUILD_ROOT%{_sysconfdir}/nginx/shib_clear_headers
++%{__install} -m 644 -p %{bdir}/nginx-http-shibboleth-%{nginx_http_shibboleth_version}/includes/shib_fastcgi_params \
++  $RPM_BUILD_ROOT%{_sysconfdir}/nginx/shib_fastcgi_params
++
+ %{__mkdir} -p $RPM_BUILD_ROOT%{_unitdir}
+ %{__install} -m644 %SOURCE4 \
+     $RPM_BUILD_ROOT%{_unitdir}/nginx.service
+@@ -217,6 +259,9 @@ cat /dev/null > debugsourcefiles.list
+ %config(noreplace) %{_sysconfdir}/nginx/scgi_params
+ %config(noreplace) %{_sysconfdir}/nginx/uwsgi_params
+ 
++%config(noreplace) %{_sysconfdir}/nginx/shib_clear_headers
++%config(noreplace) %{_sysconfdir}/nginx/shib_fastcgi_params
++
+ %config(noreplace) %{_sysconfdir}/logrotate.d/nginx
+ %{_unitdir}/nginx.service
+ %{_unitdir}/nginx-debug.service
