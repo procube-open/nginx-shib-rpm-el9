@@ -25,7 +25,7 @@ RUN mkdir -p /tmp/requires \
     && cd RPMS/x86_64/ \
     && rpm -ivh lua-5.*.rpm lua-devel-5.*.rpm
 RUN mkdir -p /tmp/buffer
-COPY core.patch shibboleth.patch nginx.spec.patch nginx.conf.patch jdomain_http.patch /tmp/buffer/
+COPY core.patch shibboleth.patch nginx.spec.patch nginx.conf.patch jdomain_http.patch sticky.patch /tmp/buffer/
 USER builder
 RUN mkdir -p ${HOME}/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 RUN echo "%_topdir %(echo ${HOME})/rpmbuild" > ${HOME}/.rpmmacros
@@ -33,7 +33,7 @@ RUN cp /tmp/buffer/* ${HOME}/rpmbuild/SOURCES/
 RUN wget --no-verbose -O rpmbuild/SOURCES/ngx_devel_kit-0.3.3.tar.gz https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v0.3.3.tar.gz
 #RUN wget --no-verbose -O rpmbuild/SOURCES/lua-nginx-module-0.10.13.tar.gz https://github.com/openresty/lua-nginx-module/archive/refs/tags/v0.10.13.tar.gz
 RUN wget --no-verbose -O rpmbuild/SOURCES/lua-nginx-module-0.10.13.tar.gz https://github.com/openresty/lua-nginx-module/archive/refs/tags/v0.10.13.tar.gz
-#RUN wget --no-verbose -O rpmbuild/SOURCES/nginx-goodies-nginx-sticky-module-ng-08a395c66e42.tar.gz https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/get/08a395c66e42.tar.gz
+RUN wget --no-verbose -O rpmbuild/SOURCES/nginx-goodies-nginx-sticky-module-ng-08a395c66e42.tar.gz https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/get/08a395c66e42.tar.gz
 RUN wget --no-verbose -O rpmbuild/SOURCES/nginx-http-shibboleth-2.0.2.tar.gz https://github.com/nginx-shib/nginx-http-shibboleth/archive/v2.0.2.tar.gz
 RUN wget --no-verbose -O rpmbuild/SOURCES/headers-more-nginx-module-0.38.tar.gz https://github.com/openresty/headers-more-nginx-module/archive/v0.38.tar.gz
 RUN wget --no-verbose -O rpmbuild/SOURCES/nginx_ajp_module-0.3.3.tar.gz https://github.com/dvershinin/nginx_ajp_module/archive/refs/tags/v0.3.3.tar.gz
