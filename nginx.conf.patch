@@ -1,12 +1,12 @@
---- nginx.conf	2025-02-25 02:05:30.884263119 +0000
-+++ nginx.conf.new	2025-02-25 02:07:31.747263119 +0000
+--- nginx.conf
++++ nginx.conf
 @@ -2,12 +2,13 @@
  user  nginx;
  worker_processes  auto;
  
 -error_log  /var/log/nginx/error.log notice;
 +error_log  stderr warn;
- pid        /var/run/nginx.pid;
+ pid        /run/nginx.pid;
  
 +worker_rlimit_nofile 40960;
  

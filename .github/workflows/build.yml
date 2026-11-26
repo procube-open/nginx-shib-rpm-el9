@@ -19,6 +19,13 @@ jobs:
           sudo chown 111:111 -R /tmp/RPMS
           docker run --rm --name nginx-shib-rpm-el9 -v /tmp/RPMS:/home/builder/rpmbuild/RPMS procube/nginx-shib-rpm-el9
           (cd /tmp;tar czf - RPMS) > $TRAVIS_BUILD_DIR/nginx-shib-rpm-el9.tar.gz
+      - name: Test RPM
+        run: |
+          docker run --rm \
+            -v /tmp/RPMS:/rpms:ro \
+            -v "$GITHUB_WORKSPACE/tests:/tests:ro" \
+            almalinux/9-base \
+            bash -ec 'dnf -y install /rpms/x86_64/nginx-1.*.rpm && python3 /tests/integration.py'
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
